@@ -42,6 +42,7 @@ async function run() {
   try {
     const postsCollection = client.db("friendkitbook").collection("posts");
     const usersCollection = client.db("friendkitbook").collection("users");
+    const commentCollection = client.db("friendkitbook").collection("comments");
 
     // // Verify Admin
     // const verifyAdmin = async (req, res, next) => {
@@ -98,14 +99,14 @@ async function run() {
       res.send(user);
     });
 
-    // get all products
-    app.get("/products", async (req, res) => {
-      const product = await postsCollection.find({}).toArray();
-      res.send(product);
+    // get all posts
+    app.get("/posts", async (req, res) => {
+      const post = await postsCollection.find({}).toArray();
+      res.send(post);
     });
 
-    // Get All products for host
-    app.get("/products/:email", verifyJWT, async (req, res) => {
+    // Get All posts for host
+    app.get("/posts/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
       const decodedEmail = req.decoded.email;
 
@@ -116,27 +117,27 @@ async function run() {
         "seller.email": email,
       };
       const cursor = postsCollection.find(query);
-      const products = await cursor.toArray();
-      res.send(products);
+      const posts = await cursor.toArray();
+      res.send(posts);
     });
 
-    // Post A Product
-    app.post("/products", verifyJWT, async (req, res) => {
-      const product = req.body;
-      console.log(product);
-      const result = await postsCollection.insertOne(product);
+    // Post A post
+    app.post("/posts", verifyJWT, async (req, res) => {
+      const post = req.body;
+      console.log(post);
+      const result = await postsCollection.insertOne(post);
       res.send(result);
     });
 
-    // Update A product
-    app.put("/products", verifyJWT, async (req, res) => {
-      const product = req.body;
-      console.log(product);
+    // Update A post
+    app.put("/posts", verifyJWT, async (req, res) => {
+      const post = req.body;
+      console.log(post);
 
       const filter = {};
       const options = { upsert: true };
       const updateDoc = {
-        $set: product,
+        $set: post,
       };
       const result = await postsCollection.updateOne(
         filter,
@@ -146,20 +147,36 @@ async function run() {
       res.send(result);
     });
 
-    // Delete a product
-    app.delete("/product/:id", verifyJWT, async (req, res) => {
+    // // Delete a post
+    // app.delete("/posts/:id", verifyJWT, async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: ObjectId(id) };
+    //   const result = await postsCollection.deleteOne(query);
+    //   res.send(result);
+    // });
+
+    // Get Single post
+    app.get("/post/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const result = await postsCollection.deleteOne(query);
-      res.send(result);
+      const post = await postsCollection.findOne(query);
+      res.send(post);
     });
 
-    // Get Single product
-    app.get("/product/:id", async (req, res) => {
+    // Post A comment
+    app.post("/comments", verifyJWT, async (req, res) => {
+      const comment = req.body;
+      console.log(post);
+      const result = await commentCollection.insertOne(comment);
+      res.send(result);
+    });
+    // get all comment for a post
+    app.get("/comments/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const product = await postsCollection.findOne(query);
-      res.send(product);
+      const query = { postId: id };
+      const cursor = commentCollection.find(query);
+      const comments = await cursor.toArray();
+      res.send(comments);
     });
   } catch (error) {
     console.log(error);
