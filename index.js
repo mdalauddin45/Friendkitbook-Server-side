@@ -43,7 +43,7 @@ async function run() {
     const postsCollection = client.db("friendkitbook").collection("posts");
     const usersCollection = client.db("friendkitbook").collection("users");
     const commentCollection = client.db("friendkitbook").collection("comments");
-
+    const likesCollection = client.db("friendkitbook").collection("likes");
     // // Verify Admin
     // const verifyAdmin = async (req, res, next) => {
     //   const decodedEmail = req.decoded.email;
@@ -129,24 +129,6 @@ async function run() {
       res.send(result);
     });
 
-    // Update A post
-    app.put("/posts", verifyJWT, async (req, res) => {
-      const post = req.body;
-      console.log(post);
-
-      const filter = {};
-      const options = { upsert: true };
-      const updateDoc = {
-        $set: post,
-      };
-      const result = await postsCollection.updateOne(
-        filter,
-        updateDoc,
-        options
-      );
-      res.send(result);
-    });
-
     // // Delete a post
     // app.delete("/posts/:id", verifyJWT, async (req, res) => {
     //   const id = req.params.id;
@@ -162,21 +144,72 @@ async function run() {
       const post = await postsCollection.findOne(query);
       res.send(post);
     });
+    // update a post
+    app.put("/post/:id", verifyJWT, async (req, res) => {
+      const { id } = req.params;
+      try {
+        const result = await postsCollection.updateOne(
+          { _id: id },
+          { $set: req.body }
+        );
+        console.log(result);
+        if (result.matchedCount) {
+          res.send({
+            success: true,
+            message: "Update Succesfully",
+          });
+        } else {
+          res.send({
+            success: false,
+            error: "could not Update the product",
+          });
+        }
+      } catch (error) {
+        console.log(error.name, error.message);
+        res.send({
+          success: false,
+          error: error.message,
+        });
+      }
+    });
 
-    // Post A comment
+    //post a comment
     app.post("/comments", verifyJWT, async (req, res) => {
       const comment = req.body;
-      console.log(post);
-      const result = await commentCollection.insertOne(comment);
+      console.log(comment);
+      const result = await commentCollection.insertOne({ comment });
       res.send(result);
     });
     // get all comment for a post
-    app.get("/comments/:id", async (req, res) => {
+    app.get("/comment/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { postId: id };
+      const query = { "comment._id": id };
       const cursor = commentCollection.find(query);
       const comments = await cursor.toArray();
       res.send(comments);
+    });
+    // post a like
+    app.post("/likes", verifyJWT, async (req, res) => {
+      const like = req.body;
+      console.log(like);
+      const result = await likesCollection.insertOne({ like });
+      res.send(result);
+    });
+    // get all likes for a post
+    app.get("/likes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { "like._id": id };
+      const cursor = likesCollection.find(query);
+      const likes = await cursor.toArray();
+      res.send(likes);
+    });
+
+    // dislike a post
+    app.delete("/likes/:id", verifyJWT, async (req, res) => {
+      const id = req.params.id;
+      const query = { "like._id": id };
+      const result = await likesCollection.deleteOne(query);
+      res.send(result);
     });
   } catch (error) {
     console.log(error);
