@@ -44,18 +44,7 @@ async function run() {
     const usersCollection = client.db("friendkitbook").collection("users");
     const commentCollection = client.db("friendkitbook").collection("comments");
     const likesCollection = client.db("friendkitbook").collection("likes");
-    // // Verify Admin
-    // const verifyAdmin = async (req, res, next) => {
-    //   const decodedEmail = req.decoded.email;
-    //   const query = { email: decodedEmail };
-    //   const user = await usersCollection.findOne(query);
-
-    //   if (user?.role !== "admin") {
-    //     return res.status(403).send({ message: "forbidden access" });
-    //   }
-    //   console.log("Admin true");
-    //   next();
-    // };
+    const aboutCollection = client.db("friendkitbook").collection("about");
 
     // Save user email & generate JWT
     app.put("/user/:email", async (req, res) => {
@@ -101,7 +90,7 @@ async function run() {
 
     // get all posts
     app.get("/posts", async (req, res) => {
-      const post = await postsCollection.find({}).toArray();
+      const post = await postsCollection.find({}).sort({ likes: -1 }).toArray();
       res.send(post);
     });
 
@@ -114,7 +103,7 @@ async function run() {
         return res.status(403).send({ message: "forbidden access" });
       }
       const query = {
-        "seller.email": email,
+        // "email": email,
       };
       const cursor = postsCollection.find(query);
       const posts = await cursor.toArray();
@@ -128,14 +117,6 @@ async function run() {
       const result = await postsCollection.insertOne(post);
       res.send(result);
     });
-
-    // // Delete a post
-    // app.delete("/posts/:id", verifyJWT, async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { _id: ObjectId(id) };
-    //   const result = await postsCollection.deleteOne(query);
-    //   res.send(result);
-    // });
 
     // Get Single post
     app.get("/post/:id", async (req, res) => {
@@ -209,6 +190,65 @@ async function run() {
       const id = req.params.id;
       const query = { "like._id": id };
       const result = await likesCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // user about
+    app.post("/about", verifyJWT, async (req, res) => {
+      const about = req.body;
+      console.log(about);
+      const result = await aboutCollection.insertOne({ about });
+      res.send(result);
+    });
+
+    // get user about
+    app.get("/about/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const decodedEmail = req.decoded.email;
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const query = { "about.email": email };
+      console.log(query);
+      const about = await aboutCollection.find(query).cursor.toArray();
+
+      res.send(about);
+    });
+
+    // get all about
+    app.get("/about", async (req, res) => {
+      const decoded = req.decoded;
+
+      if (decoded.email !== req.query.email) {
+        res.status(403).send({ message: "unauthorized access" });
+      }
+
+      let query = {};
+      if (req.query.email) {
+        query = {
+          email: req.query.email,
+        };
+      }
+      const cursor = aboutCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
+    //update user about
+    app.put("/about", verifyJWT, async (req, res) => {
+      const about = req.body;
+      console.log(about);
+
+      const filter = {};
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: about,
+      };
+      const result = await aboutCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
   } catch (error) {
