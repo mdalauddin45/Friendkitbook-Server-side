@@ -46,6 +46,29 @@ async function run() {
     const likesCollection = client.db("friendkitbook").collection("likes");
 
     // Save user email & generate JWT
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+
+      const filter = { email: email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1d",
+      });
+      console.log(result);
+      res.send({ result, token });
+    });
+
+    // update a user
     app.patch("/user/:id", async (req, res) => {
       const id = req.params;
       const user = req.body;
@@ -86,34 +109,6 @@ async function run() {
       const user = await usersCollection.findOne(query);
       res.send(user);
     });
-    // update a user
-    // app.patch("/user/:id", async (req, res) => {
-    //   const { id } = req.params;
-    //   try {
-    //     const result = await usersCollection.updateOne(
-    //       { _id: id },
-    //       { $set: req.body }
-    //     );
-    //     console.log(result);
-    //     if (result.matchedCount) {
-    //       res.send({
-    //         success: true,
-    //         message: "Update the user successfully",
-    //       });
-    //     } else {
-    //       res.send({
-    //         success: false,
-    //         error: "could not Update the user",
-    //       });
-    //     }
-    //   } catch (error) {
-    //     console.log(error.name, error.message);
-    //     res.send({
-    //       success: false,
-    //       error: error.message,
-    //     });
-    //   }
-    // });
 
     // get all posts
     app.get("/posts", async (req, res) => {
@@ -153,32 +148,23 @@ async function run() {
       res.send(post);
     });
     // update a post
-    app.put("/post/:id", verifyJWT, async (req, res) => {
-      const { id } = req.params;
-      try {
-        const result = await postsCollection.updateOne(
-          { _id: id },
-          { $set: req.body }
-        );
-        console.log(result);
-        if (result.matchedCount) {
-          res.send({
-            success: true,
-            message: "Update Succesfully",
-          });
-        } else {
-          res.send({
-            success: false,
-            error: "could not Update the product",
-          });
-        }
-      } catch (error) {
-        console.log(error.name, error.message);
-        res.send({
-          success: false,
-          error: error.message,
-        });
-      }
+    app.patch("/post/:id", async (req, res) => {
+      const id = req.params;
+      const user = req.body;
+
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await postsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+
+      console.log(result);
+      res.send(result);
     });
 
     //post a comment
